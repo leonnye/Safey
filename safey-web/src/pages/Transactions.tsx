@@ -5,7 +5,7 @@ import { sortTxns, TxnRow } from '@/components/finance';
 import { Button, Empty, PageHeader, Toast } from '@/components/ui';
 import { formatMonth } from '@/domain/dates';
 import type { Transaction } from '@/domain/types';
-import { money } from '@/lib/format';
+import { money, relativeDay } from '@/lib/format';
 import { useStore } from '@/store/store';
 import { useLookups } from '@/store/useFinance';
 
@@ -88,6 +88,12 @@ export function Transactions() {
       ) : (
         groups.map(([month, list]) => {
           const net = list.reduce((s, t) => s + (t.direction === 'income' ? t.amountMinor : -t.amountMinor), 0);
+          const days: { date: string; items: Transaction[] }[] = [];
+          for (const t of list) {
+            const last = days[days.length - 1];
+            if (last?.date === t.date) last.items.push(t);
+            else days.push({ date: t.date, items: [t] });
+          }
           return (
             <section key={month} className="stack" style={{ gap: 10 }}>
               <div className="section-head">
@@ -97,11 +103,24 @@ export function Transactions() {
                 </span>
               </div>
               <div className="card card--flush">
-                <div className="list">
-                  {list.map((t) => (
-                    <TxnRow key={t.id} t={t} />
-                  ))}
-                </div>
+                {days.map((day) => {
+                  const dayNet = day.items.reduce((s, t) => s + (t.direction === 'income' ? t.amountMinor : -t.amountMinor), 0);
+                  return (
+                    <div key={day.date}>
+                      <div className="day-head">
+                        <span>{relativeDay(day.date, today)}</span>
+                        <span className={`num ${dayNet < 0 ? 'out' : dayNet > 0 ? 'in' : 'muted'}`}>
+                          {dayNet < 0 ? '−' : dayNet > 0 ? '+' : ''} {money(Math.abs(dayNet), currency)}
+                        </span>
+                      </div>
+                      <div className="list">
+                        {day.items.map((t) => (
+                          <TxnRow key={t.id} t={t} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           );

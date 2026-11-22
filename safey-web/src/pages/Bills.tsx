@@ -1,8 +1,8 @@
-import { CalendarClock, Check, Pencil, Plus, Trash2, Wallet } from 'lucide-react';
+import { CalendarClock, Check, ChevronLeft, ChevronRight, Pencil, Plus, Trash2, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Banner, Button, Empty, Field, MoneyInput, PageHeader, Segmented, Sheet, Tile } from '@/components/ui';
 import { fallbackCategoryId } from '@/domain/categories';
-import { diffDays, formatDate, formatShortDate } from '@/domain/dates';
+import { addDays, addMonths, diffDays, formatDate, formatMonth, formatShortDate, startOfMonth, startOfWeek } from '@/domain/dates';
 import { minorToInput, parseMoneyInput } from '@/domain/money';
 import type { Direction, Frequency, PlannedItem } from '@/domain/types';
 import { dueIn, money } from '@/lib/format';
@@ -174,14 +174,94 @@ function ItemSheet({ item, onEdit, onClose }: { item: PlannedItem; onEdit: () =>
   );
 }
 
+function MonthBoard({
+  month,
+  today,
+  items,
+  tone,
+  selected,
+  onMonth,
+  onSelect,
+}: {
+  month: string;
+  today: string;
+  items: PlannedItem[];
+  tone: 'out' | 'in';
+  selected: string | null;
+  onMonth: (month: string) => void;
+  onSelect: (date: string | null) => void;
+}) {
+  const monthEnd = addDays(addMonths(month, 1), -1);
+  const gridStart = startOfWeek(month);
+  const weeks = Math.ceil((diffDays(monthEnd, gridStart) + 1) / 7);
+  const days = Array.from({ length: weeks * 7 }, (_, i) => addDays(gridStart, i));
+  const byDate = new Map<string, PlannedItem[]>();
+  for (const item of items) byDate.set(item.dueDate, [...(byDate.get(item.dueDate) ?? []), item]);
+  let cluster: { from: string; to: string; count: number } | null = null;
+  for (const item of items) {
+    const window = items.filter((p) => p.dueDate >= item.dueDate && p.dueDate <= addDays(item.dueDate, 6));
+    if (!cluster || window.length > cluster.count) cluster = { from: window[0]!.dueDate, to: window[window.length - 1]!.dueDate, count: window.length };
+  }
+
+  return (
+    <div className="card cal">
+      <div className="row-between">
+        <button className="icon-btn" aria-label="Previous month" onClick={() => onMonth(addMonths(month, -1))}>
+          <ChevronLeft size={18} />
+        </button>
+        <strong>{formatMonth(month)}</strong>
+        <button className="icon-btn" aria-label="Next month" onClick={() => onMonth(addMonths(month, 1))}>
+          <ChevronRight size={18} />
+        </button>
+      </div>
+      <div className="cal-week" aria-hidden>
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+          <span key={d}>{d}</span>
+        ))}
+      </div>
+      <div className="cal-grid">
+        {days.map((d) => {
+          const inMonth = d.slice(0, 7) === month.slice(0, 7);
+          const count = byDate.get(d)?.length ?? 0;
+          return (
+            <button
+              key={d}
+              type="button"
+              className={`cal-day ${inMonth ? '' : 'is-out'} ${d === today ? 'is-today' : ''} ${d === selected ? 'is-selected' : ''} ${count > 1 && tone === 'out' ? 'is-cluster' : ''}`}
+              disabled={!inMonth}
+              aria-pressed={d === selected}
+              aria-label={`${formatShortDate(d)}${count ? `, ${count} item${count === 1 ? '' : 's'}` : ''}`}
+              onClick={() => onSelect(selected === d ? null : d)}
+            >
+              <span>{Number(d.slice(8))}</span>
+              {count > 0 ? <i className={tone} /> : null}
+            </button>
+          );
+        })}
+      </div>
+      {cluster && cluster.count > 1 ? (
+        <p className="tiny secondary">
+          {cluster.count} {tone === 'out' ? 'bills' : 'payments'} fall between {formatShortDate(cluster.from)} and {formatShortDate(cluster.to)}.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function Bills() {
   const { data, today, currency } = useStore();
   const { category } = useLookups();
   const [tab, setTab] = useState<Tab>('bills');
+  const [month, setMonth] = useState(startOfMonth(today));
+  const [selected, setSelected] = useState<string | null>(null);
   const [open, setOpen] = useState<PlannedItem | null>(null);
   const [editing, setEditing] = useState<{ item: PlannedItem | null } | null>(null);
 
   const items = data.plannedItems.filter((p) => p.isActive && p.direction === (tab === 'income' ? 'income' : 'expense')).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const monthEnd = addDays(addMonths(month, 1), -1);
+  const inMonth = items.filter((p) => p.dueDate >= month && p.dueDate <= monthEnd);
+  const visible = selected ? inMonth.filter((p) => p.dueDate === selected) : inMonth;
+  const nextOutside = items.find((p) => p.dueDate > monthEnd);
 
   return (
     <div className="page">
@@ -229,26 +309,63 @@ export function Bills() {
           </Empty>
         </div>
       ) : (
-        <div className="stack-cards">
-          {items.map((p) => {
-            const days = diffDays(p.dueDate, today);
-            return (
-              <button key={p.id} className="row-card" onClick={() => setOpen(p)} style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
-                <span className="tiny muted">{formatShortDate(p.dueDate)}</span>
-                <span className="row-between" style={{ justifyContent: 'flex-start', gap: 14 }}>
-                  <Tile visual={categoryVisual(category(p.categoryId))} />
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span className="title-md" style={{ fontSize: 15, display: 'block' }}>
-                      {p.label}
+        <>
+          <MonthBoard
+            month={month}
+            today={today}
+            items={inMonth}
+            tone={tab === 'income' ? 'in' : 'out'}
+            selected={selected}
+            onMonth={(next) => {
+              setMonth(next);
+              setSelected(null);
+            }}
+            onSelect={setSelected}
+          />
+          {selected ? (
+            <button className="link" onClick={() => setSelected(null)}>
+              Showing {formatShortDate(selected)} · show the whole month
+            </button>
+          ) : null}
+          {visible.length === 0 ? (
+            <div className="card">
+              <Empty
+                visual={{ icon: tab === 'bills' ? CalendarClock : Wallet, hue: tab === 'bills' ? '#F4C46B' : '#73D6AE' }}
+                title={selected ? 'Nothing on this day' : 'Nothing this month'}
+                action={
+                  nextOutside && !selected ? (
+                    <button className="link" onClick={() => setMonth(startOfMonth(nextOutside.dueDate))}>
+                      Next is {nextOutside.label} on {formatShortDate(nextOutside.dueDate)}
+                    </button>
+                  ) : null
+                }
+              >
+                {selected ? 'Pick another day, or show the whole month.' : 'Nothing is due in this month.'}
+              </Empty>
+            </div>
+          ) : (
+            <div className="stack-cards">
+              {visible.map((p) => {
+                const days = diffDays(p.dueDate, today);
+                return (
+                  <button key={p.id} className="row-card" onClick={() => setOpen(p)} style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+                    <span className="tiny muted">{formatShortDate(p.dueDate)}</span>
+                    <span className="row-between" style={{ justifyContent: 'flex-start', gap: 14 }}>
+                      <Tile visual={categoryVisual(category(p.categoryId))} />
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span className="title-md" style={{ fontSize: 15, display: 'block' }}>
+                          {p.label}
+                        </span>
+                        <span className={`small num ${p.direction === 'income' ? 'in' : 'out'}`}>{money(p.amountMinor, currency)}</span>
+                      </span>
+                      <span className={`badge ${days <= 3 ? 'badge--danger' : ''}`}>{dueIn(p.dueDate, today)}</span>
                     </span>
-                    <span className={`small num ${p.direction === 'income' ? 'in' : 'out'}`}>{money(p.amountMinor, currency)}</span>
-                  </span>
-                  <span className={`badge ${days <= 3 ? 'badge--danger' : ''}`}>{dueIn(p.dueDate, today)}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {tab !== 'done' ? (

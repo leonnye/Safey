@@ -155,7 +155,7 @@ function GoalSheet({ goal, onEdit, onClose }: { goal: SavingsGoal; onEdit: () =>
 }
 
 export function Goals() {
-  const { data, currency } = useStore();
+  const { data, today, currency } = useStore();
   const [openId, setOpenId] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ goal: SavingsGoal | null } | null>(null);
   const open = data.goals.find((g) => g.id === openId) ?? null;
@@ -180,6 +180,7 @@ export function Goals() {
           {data.goals.map((g) => {
             const v = goalVisual(g.icon);
             const ratio = g.savedMinor / g.targetMinor;
+            const perMonth = monthlyNeeded(g, today);
             return (
               <button key={g.id} className="row-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 14, padding: 18 }} onClick={() => setOpenId(g.id)}>
                 <span className="row-between" style={{ justifyContent: 'flex-start', gap: 14 }}>
@@ -198,8 +199,9 @@ export function Goals() {
                 <span className="stack-sm">
                   <span className="small">{Math.round(ratio * 100)}%</span>
                   <Progress ratio={ratio} large tone="plain" />
-                  <span className="tiny muted num" style={{ textAlign: 'right' }}>
-                    {ratio >= 1 ? 'Goal reached' : `${money(g.savedMinor, currency)} saved`}
+                  <span className="row-between tiny num">
+                    <span className="muted">{ratio >= 1 ? 'Goal reached' : `${money(g.savedMinor, currency)} saved`}</span>
+                    {ratio >= 1 || perMonth == null ? null : <span className="secondary">{money(perMonth, currency)} a month</span>}
                   </span>
                 </span>
               </button>

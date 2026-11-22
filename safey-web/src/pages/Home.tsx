@@ -4,11 +4,39 @@ import { BalanceChart } from '@/components/charts';
 import { sortTxns, TxnRow } from '@/components/finance';
 import { Button, Empty, Progress, Tile } from '@/components/ui';
 import { startOfMonth } from '@/domain/dates';
+import { simulate } from '@/domain/engine/simulator';
 import { periodSummary } from '@/domain/engine/summary';
 import { dueIn, formatShortDate, greeting, initials, money } from '@/lib/format';
 import { categoryVisual } from '@/lib/visuals';
 import { useStore } from '@/store/store';
 import { useBalanceHistory, useFinance, useLookups } from '@/store/useFinance';
+
+function LatestWhatIf() {
+  const { data, today } = useStore();
+  const { position } = useFinance();
+  const latest = data.scenarios[0];
+  if (!latest) return null;
+  const result = simulate({
+    today,
+    horizonDays: latest.horizonDays,
+    startBalanceMinor: position.totalMinor,
+    plannedItems: data.plannedItems,
+    transactions: data.transactions,
+    scenario: latest.inputs,
+  });
+  if (result.error) return null;
+  const low = result.scenario.lowestCentral.valueMinor;
+  const buffer = data.profile?.bufferMinor ?? 0;
+  const head = low >= buffer ? 'Looks manageable' : low >= 0 ? 'It’s tight' : 'Looks risky';
+  const tone = low >= buffer ? 'in' : low >= 0 ? '' : 'out';
+  return (
+    <Link to="/future" className="home-whatif">
+      <Sparkle size={15} />
+      <span className={`small ${tone}`}>{head}</span>
+      <span className="ask">{latest.name}</span>
+    </Link>
+  );
+}
 
 function SafeyNoticed() {
   const { visible, coverage } = useFinance();
@@ -113,6 +141,13 @@ export function Home() {
             <div className="hero-amount num">{money(last, currency, { exact: true })}</div>
             <div className="small" style={{ color: 'rgba(246,243,252,0.65)' }}>
               {delta ? 'vs 30 days ago' : `Across ${position.sources.length} account${position.sources.length === 1 ? '' : 's'}`}
+              {upcomingBillsMinor > 0 ? (
+                <span className="tiny" style={{ display: 'block', marginTop: 2, color: last >= upcomingBillsMinor ? 'rgba(246,243,252,0.72)' : '#ffb0b7' }}>
+                  {last >= upcomingBillsMinor
+                    ? `${money(last - upcomingBillsMinor, currency)} left after bills due in 30 days`
+                    : `Bills due in 30 days are ${money(upcomingBillsMinor - last, currency)} more than this`}
+                </span>
+              ) : null}
             </div>
             <div style={{ margin: '8px -6px 0' }}>
               <BalanceChart values={history.map((h) => h.valueMinor)} />
@@ -136,6 +171,7 @@ export function Home() {
             </Link>
           </div>
 
+          <LatestWhatIf />
           <div className="only-mobile">
             <SafeyNoticed />
           </div>
@@ -162,7 +198,11 @@ export function Home() {
                       <div className="grow">
                         <div className="title">{cat?.name ?? 'Other'}</div>
                         <div className="sub num">
-                          {b ? `${money(row.totalMinor, currency)} / ${money(b.limitMinor, currency)}` : `${row.count} record${row.count === 1 ? '' : 's'}`}
+                          {b
+                            ? row.totalMinor > b.limitMinor
+                              ? `${money(row.totalMinor - b.limitMinor, currency)} over the limit`
+                              : `${money(b.limitMinor - row.totalMinor, currency)} left of ${money(b.limitMinor, currency)}`
+                            : `${row.count} record${row.count === 1 ? '' : 's'} · no limit`}
                         </div>
                         {b ? (
                           <div style={{ marginTop: 8 }}>
