@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Safey",
+    "slug": "safey",
+    "scheme": "safey",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/safey-logo.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#09080F",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.safey.mobile"
+    },
+    "android": {
+      "package": "app.safey.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#09080F",
+        "foregroundImage": "./assets/safey-mark.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/safey-mark.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-sharing",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

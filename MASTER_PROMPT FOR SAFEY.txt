@@ -1,0 +1,205 @@
+## Prompt
+
+You are the senior product engineer responsible for building **Safey**, a Ghana-first personal finance companion for adults aged 18+. Implement the product described by the repository’s actual product, architecture, and design documents. Build real, working functionality. Do not deliver a collection of mock-only screens, hard-coded dashboards, fake imports, simulated auth, or placeholder buttons presented as complete features.
+
+### 1. Source documents, authority, and honesty
+
+Before changing code, inspect the complete repository, its instructions (including `AGENTS.md`), current git state, package scripts, existing app structure, and all available Safey product materials. In particular, locate and read:
+
+- `PRD.md` — product scope, functional requirements, journeys, acceptance criteria, assumptions.
+- `ARCHITECTURE.md` — proposed stack, module boundaries, data model, API, calculations, security, operations.
+- `DESIGN.md` — brand, design tokens, components, navigation, screen and accessibility guidance.
+- `C:\Users\JAMES\Desktop\Safey App\Safey Financial App UI Showcase.png` — supplied multi-screen visual reference.
+- `C:\Users\JAMES\Desktop\Safey App\Glowing Safey Shield Logo.png` — supplied logo/app-icon artwork.
+- Any other App UI Showcase and original Safey logo assets actually present in the repository or explicitly provided context.
+
+Treat the source documents as authoritative. Preserve product terminology, named features, scope boundaries, decisions, and caveats. Do not silently resolve conflicts or invent missing requirements. At the start, report which files/assets you actually found and read, then list contradictions, missing assets, and consequential open decisions. Distinguish a source-defined requirement from an implementation choice. If a decision materially changes product behavior, security, data handling, pricing, provider connectivity, or calculations, record it in an “Open decisions” section and choose the safest reversible implementation that keeps the app usable. Do not fabricate an answer and attribute it to the source.
+
+Inspect the supplied showcase and logo image directly when those paths are available. The showcase is visual reference material, not a source of requirements that overrides the PRD or architecture. Use the actual logo artwork as supplied where technically appropriate; preserve the glowing lavender shield/star mark and Safey wordmark. If assets cannot be accessed in a future environment, say so and follow the written design guidance without claiming to have inspected them. Do not invent a provider logo, integration badge, or “connected” state. Do not copy another product’s distinctive layouts or visual assets.
+
+The showcase depicts splash and welcome screens, sign-in/create-account, currency onboarding, Home dashboard, Transactions, Add Transaction, Accounts, CSV Import Review, Budgets, Bills, Goals, an “Ask Safey (AI Chat)” screen, and Early Warnings. Use these to understand intended composition, dark near-black/violet surfaces, lavender highlights, rounded cards, compact charts, bottom navigation, and the intended visual hierarchy. Adapt the layout to functional requirements, accessibility, and the actual app framework; do not reproduce unreadable fine print or tiny screen text from the image. Preserve the written `DESIGN.md` tokens and constraints where the image differs.
+
+There are visible source tensions to surface rather than silently resolve: the showcase offers GHC, USD, EUR, and GBP currency choices, a Transfers tab, several named bank/MoMo accounts, and a free-form AI chat. The PRD specifies Ghana/GHS as the initial editable default, excludes payment initiation/money movement and direct provider connections from MVP, and limits AI to consented explanations of deterministic outputs (broader conversational planning is Later). Treat the showcase’s elements as visual concepts only unless an authoritative spec supports their behavior. Do not create live multi-currency support, payment/transfer flows, connected accounts, or unrestricted AI chat just because they appear in the reference. Report these as scope mismatches/open decisions.
+
+If the repository is empty or incomplete, first present a concise, staged implementation plan with assumptions, then proceed to implement it. Keep the plan updated as work lands. Do not stop after analysis or a prototype unless blocked by missing credentials or a genuinely consequential unresolved decision.
+
+### 2. Product definition and boundaries
+
+Safey helps people with regular, irregular, seasonal, freelance, or mixed income record money activity, understand their recorded position, explore “what if” plans with the **Future Self Simulator**, and see explainable signs of possible cash-flow pressure through the **Financial Early-Warning System**.
+
+MVP is iOS and Android, Ghana first, adults 18+, English (Ghana), GHS / GH₵, and `Africa/Accra` defaults. The MVP data sources are manual entry and user-reviewed CSV import. Users may represent cash, manually tracked bank, manually tracked Mobile Money, and other sources. These are user-entered records, not connected accounts.
+
+Do not implement or imply direct bank/Mobile Money connections, transaction synchronization, payment initiation, transfers, deposits, credit scoring, investment or loan advice, tax/accounting compliance, fraud detection, guaranteed forecasts, or provider coverage. Future connections are an evaluation gate only. A future provider must be identified and its current documented API, commercial availability, sandbox, supported coverage, consent/revocation, security, and legal requirements independently verified before implementation. Until then, keep integration points inert and clearly unimplemented. Never collect bank/MoMo PINs or OTPs.
+
+AI is optional, cloud-powered, and only an explanation layer over deterministic financial calculations. It must not create or alter numeric facts, make financial decisions, or mutate records. Core ledger and planning must remain useful with AI disabled or unavailable.
+
+### 3. Implementation workflow
+
+Work in reviewable stages and keep the app runnable after each stage:
+
+1. **Repository audit and plan:** identify framework, existing conventions, current functionality, source materials, missing assets, build/deploy setup, and risks. Avoid replacing working infrastructure without a reason.
+2. **Foundation:** establish or confirm React Native + Expo + TypeScript, navigation, typed domain boundaries, semantic design tokens, environment handling, Supabase clients, migrations, and development/staging/production separation. If the existing repository uses another deliberate stack, explain the mismatch and preserve the source architecture’s intent while avoiding an unnecessary rewrite.
+3. **Trust and account:** auth, adult eligibility confirmation, Ghana defaults, profile, purpose-specific consent, privacy explanation, sign-out, and deletion request flow.
+4. **Ledger and import:** data model, RLS, sources/categories, manual income/expense entry, edit/delete, and the full reviewed CSV lifecycle.
+5. **Planning:** deterministic summaries, obligations, Future Self Simulator, and versioned Financial Early-Warning rules with evidence and coverage gates.
+6. **AI, entitlements, and notifications:** add only behind safe server-side boundaries and explicit configuration/consent; keep useful deterministic fallbacks.
+7. **Release readiness:** accessibility, security checks, migration/recovery documentation, environment documentation, deployment steps, and an honest implementation/verification report.
+
+After each stage, summarize changed behavior, files or migrations, decisions, remaining work, and commands actually run. Keep a `docs/implementation-plan.md` or an equivalent existing project artifact when useful. Do not introduce a new documentation structure if the repository already has one.
+
+### 4. App structure, navigation, and screens
+
+Implement the five-tab navigation from `DESIGN.md`, with visible tab labels and screen-reader labels:
+
+- **Home:** “Where you stand” using recorded balances/transactions, next known obligations, recent trend, as-of date, and data coverage. Show add-income/add-expense actions and at most one prioritized insight or planning prompt. Never call a manual balance live.
+- **Activity:** searchable/filterable income and expense history, category/source details, edit/delete, and CSV import entry point. Clearly distinguish imported and manually entered records where useful.
+- **Plan:** obligations and the Future Self Simulator. Support delayed income, one-off expense, recurring savings amount, and custom change templates. Show baseline vs scenario, horizon, assumptions, uncertainty/range, and engine version.
+- **Insights:** Financial Early-Warning System items with severity label and icon, observation, period, supporting evidence, data coverage, caveat, next step, “Why am I seeing this?”, and correct/dismiss/snooze flows as specified.
+- **Profile:** region/currency, consent and AI settings, privacy information, notifications, export, deletion, subscription/entitlements, support, and sign-out.
+
+Also build complete states and journeys, not just happy-path screens: first use, no data, partial/stale data, offline, loading, validation errors, CSV preview and invalid rows, calculation unavailable, AI unavailable/consent revoked, permission denied, subscription unavailable, export status, and deletion pending/completed. Confirm age eligibility as 18+ and explain limitations and data handling before collecting financial data. A synthetic demo, if added, must be clearly labeled and isolated from a real account.
+
+### 5. Visual system and logo
+
+Use semantic tokens based on `DESIGN.md`; components must use semantic aliases rather than scattering color literals. Initial palette:
+
+| Token | Value |
+|---|---|
+| `color.canvas` | `#09080F` |
+| `color.surface` | `#11101A` |
+| `color.surface.raised` | `#191725` |
+| `color.surface.glass` | `rgba(32, 27, 48, 0.78)` (accents only) |
+| `color.border.subtle` | `#2A2638` |
+| `color.text.primary` | `#F6F3FC` |
+| `color.text.secondary` | `#B8B2C8` |
+| `color.text.muted` | `#8E879F` (nonessential metadata only) |
+| `color.brand.lavender` | `#B9A3FF` |
+| `color.brand.lavender.deep` | `#8E71E8` |
+| `color.brand.violet` | `#5E46A8` |
+| `color.success` / `warning` / `danger` / `info` | `#73D6AE` / `#F4C46B` / `#FF858D` / `#91B9FF` |
+
+Use Inter or a metrically compatible bundled sans-serif; tabular numerals for money; do not use thin weights for financial figures. Follow the type scale and 4 pt spacing grid in `DESIGN.md`; phone gutters 16–20 pt, cards 20 pt radius, controls 14 pt, and minimum tap targets 44×44 pt iOS / 48×48 dp Android. Support dynamic type, reduced motion, system contrast, and high-contrast mode. Target WCAG 2.2 AA contrast and verify it; do not rely on color alone. Glass effects are optional accents with solid fallbacks, never behind dense text or essential forms.
+
+The written brand mark is a lavender shield with a four-point star cutout. Use existing supplied original artwork if found. If no artwork exists, create a clean, simple implementation consistent with that description and identify it as a code-drawn interpretation; do not claim it matches an unavailable original design. Provide an accessible app icon/wordmark treatment and monochrome/high-contrast variants only if assets can be made legible.
+
+Charts distinguish recorded actuals (lavender), scenario (blue-violet dashed), threshold (amber), and urgent (coral). Every visualization includes units, direct labels/legend, a textual summary, and an accessible data alternative; axes must not mislead. Use short, direct, nonjudgmental copy. Label values as **recorded**, **estimated**, or **scenario** and include currency, period/date, and basis.
+
+### 6. Data and financial model
+
+Follow `ARCHITECTURE.md`’s model and adjust only when repository realities require it. Preserve ownership, timestamps, versioning, and auditability. Expected domain entities include:
+
+- `profiles`: auth user identity, locale, timezone, currency, eligibility confirmation metadata, and settings.
+- `consents`: user, purpose, policy version, granted/revoked state, and timestamps. AI consent is separate, opt-in, and revocable.
+- `sources`: user-owned label and type (`cash`, manually tracked `bank`, manually tracked `mobile_money`, `other`); no false connection status.
+- `categories`: user-editable/seeded hierarchy and active state.
+- `transactions`: owner, positive amount in GHS minor units, currency, direction/type, occurred-at timestamp, source, category, optional note, provenance/import reference, and created/updated timestamps.
+- `obligations`: owner, label, positive amount/currency, due date, recurrence where supported, source/category as appropriate, and active state.
+- `scenarios`: owner, template, validated input assumptions, horizon, engine version, result snapshot or reproducible input reference, and timestamps.
+- `insights`: owner, rule ID/version, severity, time window, evidence references, coverage, status/dismissal/snooze state, and generated timestamp.
+- `imports` / `import_rows`: owner, file metadata/checksum and lifecycle state, mapping, row validation/duplicate result, explicit confirmation, and idempotency key. Avoid retaining raw files longer than needed; document retention.
+- `entitlements` / `subscriptions`: provider-neutral state and feature limits; never assume a billing provider or price.
+
+Use integer minor units (pesewas) for GHS; validate positive bounded amounts and supported precision at every boundary. Never use floating point for money arithmetic. Specify rounding, date/timezone boundaries (`Africa/Accra` by default), and currency formatting centrally. Validate user input on client and server. Preserve source dates/currency values in the CSV review step and normalize only after user confirmation.
+
+Implement a deterministic, typed finance engine separate from UI and AI. Given the same versioned inputs it must return the same outputs. It owns recorded summaries, balances, baseline/scenario projections, uncertainty/sensitivity, coverage checks, and warning-rule results. Store engine/rule version with saved outputs. Explain how opening balances and transactions combine; prevent double-counting opening balance and imported activity. Support irregular income and do not assume monthly salary cadence. For insufficient or stale records, show a qualified result or suppress it; never manufacture precision.
+
+### 7. Supabase, APIs, and RLS
+
+Use Supabase Auth, PostgreSQL, RLS, and Edge Functions as proposed, unless an existing repository decision is documented. Check in versioned SQL migrations and typed client contracts. Never put service-role, AI, or other privileged secrets in the mobile app or source control.
+
+Enable RLS on every user-owned table. Policies must scope select/insert/update/delete to the authenticated owner (`auth.uid()` or a safe ownership relationship), with server-only access tightly constrained. A client must not be able to change ownership fields, grant itself consent/entitlements, or bypass validation. Review views, RPCs, storage buckets, and Edge Functions for equivalent isolation. Add and run tests that attempt cross-user reads/writes, missing JWT access, and revoked-consent AI access. Do not claim RLS is secure merely because policies exist.
+
+Keep API handlers authenticated, input-validated, versioned, rate-limited where abuse is possible, and idempotent for writes/import commits. Use pagination and explicit error shapes. Only server-side functions may call an AI vendor. AI tools are a small allowlist of read-only operations such as `get_computed_summary` and `explain_scenario`; no arbitrary SQL, arbitrary network calls, or write/payment tools. Treat descriptions, CSV cells, and notes as untrusted prompt content. Minimize and pseudonymize sent context, do not send free-text notes by default, validate structured AI output, escape rendered text, disclose AI-generated responses, and provide a useful deterministic fallback.
+
+Do not select an AI, analytics, crash, push, or billing vendor by assumption. Make vendor adapters/configuration explicit, document the choice and verification needed, and keep optional capabilities disabled until credentials and privacy/vendor terms are configured. Do not claim retention, residency, provider training opt-out, legal compliance, or store approval until verified. Avoid storing prompts/raw financial content in logs.
+
+### 8. CSV import
+
+Implement the full non-destructive flow: select file → parse under documented size/row/encoding limits → map date, description, amount, direction, currency, source, and category → interpret date/amount formats visibly → validate rows → detect likely duplicates using a disclosed heuristic → preview valid, duplicate, and invalid rows with repair actions → user explicitly selects/confirms valid rows → idempotent commit → show results and allow inspection/editing.
+
+Do not write transactions during preview. Never execute formulas/macros. Escape spreadsheet formula prefixes in exports; safely render imported text. Prevent repeat commits and provide recovery/row-level errors without losing already confirmed rows. Keep uploaded file handling local or short-lived where possible; if remote temporary storage is necessary, document access and retention and delete it after the flow. Do not silently guess ambiguous dates, amount signs, or currencies.
+
+### 9. Simulator and Early-Warning System
+
+**Future Self Simulator:** implement the four templates in the PRD. Ask for editable inputs and dates, calculate via the deterministic engine, show baseline and scenario side-by-side, assumptions, range/sensitivity, horizon, coverage/as-of date, and engine version. Let users adjust, save, compare when supported, and delete scenarios. Use educational language; no promised outcomes or personalized investment recommendations.
+
+**Financial Early-Warning System:** use documented, versioned deterministic rules only. Thresholds, minimum data coverage, stale-data limits, and forecast horizon are product decisions to validate; do not invent validated thresholds. Provide conservative initial configurable defaults, clearly identify them as provisional in code/docs, and suppress or qualify warnings when input coverage is inadequate. Each alert must show its evidence, time period, data basis, uncertainty, and suggested next step. Users can open the source records, correct data, dismiss, or snooze; corrected records trigger recalculation. Avoid opaque composite risk scores, sensitive-trait inference, shame, alarmist animations, and claims of diagnosing credit/health/fraud or predicting with certainty.
+
+### 10. Ghana-first behavior
+
+Set English (Ghana), `GHS`, display `GH₵`, and `Africa/Accra` as editable defaults. Centralize locale formatting and explicit date parsing. Seed editable categories grounded in the PRD: food/market, transport, utilities, rent/housing, health, education, family support, airtime/data, fees, savings, and income. Allow custom categories. Do not presume a particular bank, Mobile Money provider, regulation status, or connectivity. Preserve the distinction between manually tracked sources and verified live integrations throughout copy, model, and UI. Keep localization strings externalized for future languages; do not add Ghanaian-language translations without research and review.
+
+### 11. Authentication, privacy, and security
+
+Use Supabase Auth with secure token storage using platform keychain/keystore, least privilege, and re-authentication/confirmation for sensitive actions. Explain purpose and data handling before financial data entry. Store consent by purpose and policy version; AI processing requires independent opt-in and user initiation, and revocation takes effect for subsequent requests. Provide sign-out, export in a documented machine-readable format, account deletion request/status, and explain backup-retention limits and completion behavior. Keep privacy controls and core export/deletion accessible under every subscription tier.
+
+Threat model and address lost devices, account takeover, cross-user access, malicious CSV content, prompt injection, API abuse, overbroad staff access, and vendor exposure. Use TLS, managed encryption at rest, redacted logs, rate limits, secure temporary file handling, dependency/secret review, and documented incident response. Never claim legal/regulatory compliance. Before public release, require Ghana applicability review, privacy notice/terms, support and incident process, vendor due diligence, backup deletion schedule, and current app-store policy review.
+
+### 12. Freemium and notifications
+
+Build a provider-neutral entitlement layer so free and premium rules can be configured without rewriting product logic. Do not invent the free/premium split, prices, trial, or billing vendor; these remain unspecified in the PRD. Make limits and entitlement behavior visible. Before any checkout, display exact price, billing period, trial terms, and cancellation route and use a verified supported store billing flow. If billing is not configured, show a clear unavailable state and do not simulate purchases. Privacy, export, deletion, and core clarity must not be paywalled.
+
+Notifications are optional and only for meaningful, user-authorized events such as an eligible early warning or user-configured reminder. The PRD leaves push vendor and thresholds open. Ask for OS permission in context, respect quiet hours/preferences when implemented, avoid sensitive financial details on lock-screen content by default, and provide in-app equivalents. Keep notifications off or local-only until a reviewed provider and configuration exist. Never use pressure, shame, or subscription conversion nudges as financial alerts.
+
+### 13. Environment, deployment, and operations
+
+Use separate development, staging, and production Supabase projects and vendor credentials. Keep `.env.example` with variable names and safe descriptions only; never put real secrets in it. At minimum document the configured Supabase URL/anon key and server-side secrets for any selected AI, push, analytics, or billing integration. Validate required config at startup and fail safely with clear setup instructions. Ensure privileged keys exist only in server runtime secrets.
+
+Use migrations in source control and reviewed CI deployment. Keep production data out of development; use synthetic fixtures. Document Expo development builds, internal QA distribution, iOS/Android release and signing requirements, staged rollout/rollback, backups/restore, migration rehearsal, monitoring, and runbooks for vendor outage, failed migration, suspected exposure, and export/deletion failure. Do not deploy or publish to stores unless explicitly requested and configured. Mark unconfigured release dependencies as gates rather than pretending they are complete.
+
+### 14. Testing and verification
+
+Implement tests appropriate to the repository and run the relevant available checks before reporting success. At minimum cover:
+
+- Unit/property tests for money parsing/formatting, integer arithmetic/rounding, timezone boundaries, deterministic engine invariants, scenario repeatability, warning coverage gates, and CSV normalization.
+- Import preview/commit, duplicate idempotency, malformed rows, formula-safe exports, and recoverable errors.
+- RLS and API integration: cross-user isolation for every user table, missing JWT, ownership tampering, revoked AI consent, validation, retries/idempotency, rate limits, and AI-unavailable fallback.
+- Mobile journeys and accessibility: onboarding/consent, ledger CRUD, CSV review, simulator, warning evidence/correction, export/delete, large text, screen reader, reduced motion, offline/retry, iOS and Android layouts.
+- End-to-end path: signup → manual source/records → dashboard → simulator/warning → correction → export/delete.
+- Release checks: migration rehearsal, dependency/secret scan, backup/restore procedure, privacy/vendor review, and store policy review.
+
+Do not state “tests passed,” “secure,” “compliant,” “integrated,” or “deployed” unless the relevant checks or implementation actually ran and succeeded. Report exact commands and outcomes, including skipped checks and reasons. If tests cannot run due to missing credentials, device, provider, or environment, name the blocker and provide the next concrete verification step.
+
+### 15. Acceptance criteria
+
+Consider the MVP ready for a controlled release only when the PRD’s acceptance criteria are satisfied:
+
+1. An eligible Ghana-based adult can understand choices and use the app without AI or account connection.
+2. GHS, dates, and manually entered sources are consistent and never described as live provider data.
+3. Income/expenses can be added, corrected, categorized, filtered, and deleted.
+4. CSV has preview, mapping, validation, duplicate review, explicit commit, idempotency, and recoverable errors.
+5. Dashboard and simulator match the deterministic engine and show coverage, as-of time, and assumptions.
+6. Every warning traces to a versioned rule and evidence; sparse/stale records do not create unqualified warnings.
+7. AI is separately consented, server-side, read-only, grounded, and has deterministic fallback.
+8. RLS blocks cross-user access on every user-owned table; sensitive keys are absent from the mobile bundle.
+9. Export and deletion can be initiated and their status/retention behavior is documented.
+10. Core journeys work with screen reader, enlarged text, reduced motion, and tested iOS/Android layouts.
+11. Pricing/entitlements are disclosed before checkout and billing passes current store policy review before release.
+12. Privacy notice, terms, support process, incident runbook, and Ghana applicability review are complete before public launch.
+
+### 16. Final report
+
+At completion, provide:
+
+- What works now, mapped to the staged plan and PRD requirements.
+- Source files and visual assets actually found and used; if assets are unavailable in the implementation environment, state that explicitly.
+- Architecture, schema, migrations, RLS, and material design decisions.
+- Open product/vendor/legal decisions and any provisional defaults.
+- Tests/checks actually run, exact outcomes, and unverified checks.
+- Setup instructions, required environment variable names, migration steps, and how to run the app.
+- Release gates or blockers that still require credentials, provider verification, policy review, or user research.
+
+Never invent a source document, integration, benchmark, test result, approval, or production outcome.
+
+---
+
+## Source inventory for this prompt
+
+The project contained `PRD.md`, `ARCHITECTURE.md`, and `DESIGN.md`; all three were read and used. `Safey-Project-Documents.zip` contained copies of those three documents, and `sources/` was empty. The user also supplied and the current environment exposed these two actual image files, which were inspected and used as visual references:
+
+- `C:\Users\JAMES\Desktop\Safey App\Safey Financial App UI Showcase.png`
+- `C:\Users\JAMES\Desktop\Safey App\Glowing Safey Shield Logo.png`
+
+The showcase provides visual references for the screen set and dark violet/lavender visual direction described above. The logo image contains a glowing lavender shield with a four-point star cutout and Safey wordmark on a dark rounded-square field. The images are outside the project directory; keep them available to any coding agent using the prompt or copy them to its asset workspace through the user's normal workflow. The prompt does not claim that they are embedded in the project.
+
+The written specs align on the main product boundary: Ghana-first mobile MVP, manual records and reviewed CSV, no direct bank/Mobile Money integration, deterministic calculations, optional consented server-side AI, and an unselected freemium/vendor setup. The showcase contains visual elements that could imply out-of-scope functionality—multiple currencies, transfers, named provider accounts, and unrestricted AI chat. This prompt explicitly asks the implementation agent to flag those mismatches and follow the authoritative functional scope until a product decision changes it. Other open decisions include warning thresholds and coverage rules, forecast range/horizon, category validation, AI/push/analytics/crash/billing providers and terms, data region/retention, and premium packaging/pricing.
